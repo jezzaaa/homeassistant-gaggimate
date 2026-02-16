@@ -1,8 +1,8 @@
 # GaggiMate Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![GitHub Release](https://img.shields.io/github/release/jpl/homeassistant-gaggimate.svg)](https://github.com/jpl/homeassistant-gaggimate/releases)
-[![License](https://img.shields.io/github/license/jpl/homeassistant-gaggimate.svg)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/release/jezzaaa/homeassistant-gaggimate.svg)](https://github.com/jezzaaa/homeassistant-gaggimate/releases)
+[![License](https://img.shields.io/github/license/jezzaaa/homeassistant-gaggimate.svg)](LICENSE)
 
 A custom Home Assistant integration for GaggiMate espresso machines with full WebSocket support, real-time monitoring, and comprehensive control capabilities.
 
@@ -49,14 +49,14 @@ A custom Home Assistant integration for GaggiMate espresso machines with full We
 2. Go to **Integrations**
 3. Click the **three dots** in the top right corner
 4. Select **Custom repositories**
-5. Add this repository URL: `https://github.com/jpl/homeassistant-gaggimate`
+5. Add this repository URL: `https://github.com/jezzaaa/homeassistant-gaggimate`
 6. Select **Integration** as the category
 7. Click **Install**
 8. Restart Home Assistant
 
 ### Manual Installation
 
-1. Download the latest release from the [releases page](https://github.com/jpl/homeassistant-gaggimate/releases)
+1. Download the latest release from the [releases page](https://github.com/jezzaaa/homeassistant-gaggimate/releases)
 2. Extract the `custom_components/gaggimate` directory to your Home Assistant `custom_components` directory
 3. Restart Home Assistant
 
@@ -186,7 +186,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Support
 
 If you encounter any issues or have questions:
-1. Check the [Issues](https://github.com/jpl/homeassistant-gaggimate/issues) page
+1. Check the [Issues](https://github.com/jezzaaa/homeassistant-gaggimate/issues) page
 2. Create a new issue with detailed information about your problem
 3. Include relevant logs from Home Assistant
 
