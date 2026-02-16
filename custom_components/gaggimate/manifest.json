@@ -1,0 +1,12 @@
+{
+  "domain": "gaggimate",
+  "name": "GaggiMate",
+  "codeowners": ["@jpl"],
+  "config_flow": true,
+  "documentation": "https://github.com/jniebuhr/gaggimate",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "requirements": ["zeroconf>=0.132.2"],
+  "version": "0.1.0",
+  "zeroconf": ["_http._tcp.local."]
+}

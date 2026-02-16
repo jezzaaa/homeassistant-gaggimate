@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up GaggiMate",
+        "description": "Enter the hostname or IP address of your GaggiMate device.",
+        "data": {
+          "host": "Host"
+        }
+      },
+      "confirm": {
+        "title": "Confirm GaggiMate Setup",
+        "description": "Device Information:\nModel: {model}\nHardware: {hw_version}\nDisplay Version: {display_version}\nController Version: {controller_version}\n\nYou can edit the model name below if needed.",
+        "data": {
+          "model": "Model Name"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Discovered GaggiMate",
+        "description": "A GaggiMate device ({model}) was discovered at {host}. Do you want to add it to Home Assistant?"
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the device. Please check the hostname/IP address.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This device is already configured.",
+      "cannot_connect": "Failed to connect to the discovered device."
+    }
+  }
+}
