@@ -121,11 +121,15 @@ class GaggiMatePressureSensor(GaggiMateSensorBase):
         self._attr_icon = "mdi:gauge"
         self._attr_native_unit_of_measurement = "bar"
         self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
         """Return the state of the sensor."""
-        return self.coordinator.data.get(self._data_key)
+        value = self.coordinator.data.get(self._data_key)
+        if value is not None:
+            return round(value, 2)
+        return None
 
 
 class GaggiMateWeightSensor(GaggiMateSensorBase):
@@ -230,7 +234,11 @@ class GaggiMateVersionSensor(GaggiMateSensorBase):
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        return self.coordinator.data.get(self._data_key)
+        value = self.coordinator.data.get(self._data_key)
+        if value and isinstance(value, str):
+            # Remove "v" prefix if present for consistency
+            return value.lstrip("v")
+        return value
 
 
 class GaggiMateFilesystemSensor(GaggiMateSensorBase):

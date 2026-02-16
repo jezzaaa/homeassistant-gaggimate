@@ -59,12 +59,20 @@ class GaggiMateUpdateEntity(CoordinatorEntity[GaggiMateCoordinator], UpdateEntit
     def installed_version(self) -> str | None:
         """Return the installed version."""
         # Use display version as primary, fallback to controller version
-        return self.coordinator.data.get("displayVersion") or self.coordinator.data.get("controllerVersion")
+        version = self.coordinator.data.get("displayVersion") or self.coordinator.data.get("controllerVersion")
+        if version and isinstance(version, str):
+            # Remove "v" prefix if present for consistency
+            return version.lstrip("v")
+        return version
 
     @property
     def latest_version(self) -> str | None:
         """Return the latest available version."""
-        return self.coordinator.data.get("latestVersion")
+        version = self.coordinator.data.get("latestVersion")
+        if version and isinstance(version, str):
+            # Remove "v" prefix if present for consistency
+            return version.lstrip("v")
+        return version
 
     @property
     def update_available(self) -> bool:
