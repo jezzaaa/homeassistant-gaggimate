@@ -82,12 +82,12 @@ class GaggiMateUpdateEntity(CoordinatorEntity[GaggiMateCoordinator], UpdateEntit
         return display_update or controller_update
 
     @property
-    def in_progress(self) -> bool | int:
+    def in_progress(self) -> bool | int | None:
         """Return if update is in progress."""
         if self.coordinator.data.get("updating", False):
             progress = self.coordinator.data.get("progress", 0)
             return progress
-        return False
+        return None
 
     @property
     def release_summary(self) -> str | None:
