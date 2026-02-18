@@ -10,7 +10,6 @@ import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
@@ -171,75 +170,6 @@ class GaggiMateConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "hw_version": self.discovered_info.get("hw_version", "Unknown"),
                 "display_version": self.discovered_info.get("display_version", "Unknown"),
                 "controller_version": self.discovered_info.get("controller_version", "Unknown"),
-            },
-        )
-
-    async def async_step_zeroconf(
-        self, discovery_info: zeroconf.ZeroconfServiceInfo
-    ) -> FlowResult:
-        """Handle zeroconf discovery."""
-        _LOGGER.debug("Zeroconf discovery triggered: %s", discovery_info)
-        
-        # Validate TXT record properties
-        properties = discovery_info.properties
-        
-        # Check if this is a GaggiMate device by validating the 'type' TXT record
-        device_type = properties.get("type")
-        if device_type != "espresso_machine":
-            _LOGGER.debug(
-                "Ignoring zeroconf discovery: type='%s' (expected 'espresso_machine')",
-                device_type
-            )
-            return self.async_abort(reason="not_gaggimate")
-        
-        # Log firmware version if available
-        firmware_version = properties.get("version")
-        if firmware_version:
-            _LOGGER.info("Discovered GaggiMate with firmware version: %s", firmware_version)
-        else:
-            _LOGGER.warning("GaggiMate discovered but no firmware version in TXT record")
-        
-        host = discovery_info.host
-        
-        # Check if already configured
-        await self.async_set_unique_id(host)
-        self._abort_if_unique_id_configured()
-        
-        self.discovered_host = host
-        _LOGGER.info("Discovered GaggiMate at %s", host)
-        
-        # Try to validate the connection and get device info
-        try:
-            self.discovered_info = await validate_connection(self.hass, host)
-        except CannotConnect:
-            _LOGGER.error("Failed to connect to discovered GaggiMate at %s", host)
-            return self.async_abort(reason="cannot_connect")
-        except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected error during GaggiMate discovery validation: %s", err)
-            return self.async_abort(reason="unknown")
-        
-        return await self.async_step_discovery_confirm()
-
-    async def async_step_discovery_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Confirm discovery."""
-        if user_input is not None:
-            return self.async_create_entry(
-                title=self.discovered_info.get("model", DEFAULT_NAME),
-                data={
-                    CONF_HOST: self.discovered_host,
-                    CONF_MODEL: self.discovered_info.get("model", DEFAULT_NAME),
-                    CONF_HW_VERSION: self.discovered_info.get("hw_version", ""),
-                },
-            )
-
-        self._set_confirm_only()
-        return self.async_show_form(
-            step_id="discovery_confirm",
-            description_placeholders={
-                "host": self.discovered_host,
-                "model": self.discovered_info.get("model", DEFAULT_NAME),
             },
         )
 

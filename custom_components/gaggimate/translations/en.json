@@ -14,10 +14,6 @@
         "data": {
           "model": "Model Name"
         }
-      },
-      "discovery_confirm": {
-        "title": "Discovered GaggiMate",
-        "description": "A GaggiMate device ({model}) was discovered at {host}. Do you want to add it to Home Assistant?"
       }
     },
     "error": {
@@ -25,10 +21,7 @@
       "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "This device is already configured.",
-      "cannot_connect": "Failed to connect to the discovered device.",
-      "not_gaggimate": "The discovered device is not a GaggiMate espresso machine.",
-      "unknown": "An unexpected error occurred during device discovery."
+      "already_configured": "This device is already configured."
     }
   }
 }

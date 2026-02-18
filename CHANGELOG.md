@@ -5,26 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0-beta.1] - 2026-02-18
-
-**Pre-release for testing**
+## [0.2.0] - 2026-02-19
 
 ### Added
-- GaggiMate-specific mDNS service type (`_gaggimate._tcp.local.`) to prevent false matches with non-GaggiMate devices
-- TXT record validation during mDNS discovery to verify device type is "espresso_machine"
-- Firmware version logging during device discovery
-- New abort reason "not_gaggimate" for rejected non-GaggiMate devices during discovery
-- New abort reason "unknown" for unexpected errors during device discovery
 - INFO-level logging for WebSocket reconnection attempts and successes
-- Timeout protection on WebSocket send operations
+- Timeout protection on WebSocket send operations to prevent hanging
 - Enhanced profiles list logging with summary information
+- Pressure sensor now displays with 2 decimal places precision
 
 ### Changed
 - Improved WebSocket connection state visibility with better logging
-- Updated translation files (strings.json, translations/en.json) with new abort reasons
+- Version strings now strip "v" prefix for consistency across sensors and update entity
+- Simplified configuration to manual setup only (removed non-functional mDNS discovery)
 
 ### Fixed
 - WebSocket send operations can no longer hang indefinitely on unresponsive connections
+- Pressure sensor values now consistently rounded to 2 decimal places
 
 ## [0.1.0] - Initial Release
 
