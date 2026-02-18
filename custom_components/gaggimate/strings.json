@@ -26,7 +26,9 @@
     },
     "abort": {
       "already_configured": "This device is already configured.",
-      "cannot_connect": "Failed to connect to the discovered device."
+      "cannot_connect": "Failed to connect to the discovered device.",
+      "not_gaggimate": "The discovered device is not a GaggiMate espresso machine.",
+      "unknown": "An unexpected error occurred during device discovery."
     }
   }
 }

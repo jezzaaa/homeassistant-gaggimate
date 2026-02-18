@@ -126,7 +126,8 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         elif msg_type == WS_RES_PROFILES_LIST:
                             # Profiles list response
                             self._profiles = data.get("profiles", [])
-                            _LOGGER.debug("Updated profiles list: %s", self._profiles)
+                            _LOGGER.info("Updated profiles list: %d profiles available", len(self._profiles))
+                            _LOGGER.debug("Profile details: %s", self._profiles)
                         
                     except Exception as err:
                         _LOGGER.error("Error parsing WebSocket message: %s", err)
@@ -151,9 +152,11 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
         
         async def reconnect() -> None:
+            _LOGGER.info("Attempting to reconnect to GaggiMate at %s", self.host)
             await asyncio.sleep(RECONNECT_INTERVAL)
             try:
                 await self._connect_websocket()
+                _LOGGER.info("Successfully reconnected to GaggiMate at %s", self.host)
             except Exception as err:
                 _LOGGER.error("Reconnection failed: %s", err)
                 self._schedule_reconnect()
@@ -186,7 +189,10 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         if self._ws is not None and not self._ws.closed:
             try:
-                await self._ws.send_json(command)
+                await asyncio.wait_for(
+                    self._ws.send_json(command),
+                    timeout=WS_TIMEOUT
+                )
                 _LOGGER.debug("Sent command: %s", command)
             except Exception as err:
                 _LOGGER.error("Error sending command: %s", err)
