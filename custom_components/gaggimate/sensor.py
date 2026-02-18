@@ -308,8 +308,3 @@ class GaggiMateUpdateProgressSensor(GaggiMateSensorBase):
         if self.coordinator.data.get("updating"):
             return self.coordinator.data.get("progress", 0)
         return None
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return super().available and self.coordinator.data.get("updating", False)
