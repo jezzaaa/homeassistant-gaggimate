@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
@@ -24,11 +25,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Register the Lovelace card
     await hass.http.async_register_static_paths(
         [
-            {
-                "url": f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
-                "path": hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
-                "cache_headers": True,
-            }
+            StaticPathConfig(
+                url_path=f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
+                path=hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
+                cache_headers=True,
+            )
         ]
     )
     return True
