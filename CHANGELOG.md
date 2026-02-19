@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1-beta.4] - 2026-02-19
+
+**Pre-release for testing**
+
+### Fixed
+- Fixed frontend resource registration to use correct async_register_static_paths API (was causing AttributeError on integration load)
+
 ## [0.2.1-beta.3] - 2026-02-19
 
 **Pre-release for testing**
@@ -19,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend resource registration for HACS distribution
 
 ### Changed
-- Updated codeowners from @jpl to @jezzaaa in manifest.json
+- Updated codeowners in manifest.json
 
 ## [0.2.1-beta.2] - 2026-02-19
 

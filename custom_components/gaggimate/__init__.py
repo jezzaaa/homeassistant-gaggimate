@@ -22,10 +22,14 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the GaggiMate component."""
     # Register the Lovelace card
-    hass.http.register_static_path(
-        f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
-        hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
-        True,
+    await hass.http.async_register_static_paths(
+        [
+            {
+                "url": f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
+                "path": hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
+                "cache_headers": True,
+            }
+        ]
     )
     return True
 
