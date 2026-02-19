@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-02-20
+
+### Added
+- **Custom Lovelace Dashboard Card** - Beautiful unified card for complete machine control
+  - Visual configuration editor with device selection and display options
+  - Real-time temperature and pressure dials with target indicators
+  - Quick-access mode selector buttons (Standby, Brew, Steam, Water, Grind)
+  - Profile selector dropdown
+  - Current and target weight display
+  - Responsive design that adapts to Home Assistant themes
+  - Automatically registered as a Lovelace resource
+- Frontend resource registration for HACS distribution
+- Dashboard card screenshot in README
+
+### Changed
+- Updated codeowners from @jpl to @jezzaaa in manifest.json
+- Improved README with prominent dashboard card section and screenshot
+
+### Fixed
+- Frontend resource registration now uses correct StaticPathConfig dataclass
+- Lovelace resource properly registered with add_extra_js_url
+- Dashboard card now imports Lit from CDN for reliable loading across HA versions
+
 ## [0.2.1-beta.5] - 2026-02-20
 
 **Pre-release for testing**

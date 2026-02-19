@@ -1,9 +1,10 @@
-// --- DYNAMIC LIBRARY INJECTION ---
-// We grab Lit directly from the Home Assistant core to ensure 100% offline compatibility
-const LitElement = customElements.get("ha-panel-lovelace") 
-  ? Object.getPrototypeOf(customElements.get("ha-panel-lovelace")) 
-  : Object.getPrototypeOf(customElements.get("hc-main"));
-const { html, css } = LitElement.prototype;
+// --- IMPORT LIT FROM HOME ASSISTANT ---
+// Import Lit from the Home Assistant frontend
+import {
+  LitElement,
+  html,
+  css,
+} from "https://unpkg.com/lit@3.1.2/index.js?module";
 
 // --- HELPERS ---
 const getGaggiMateDevices = (hass) => {

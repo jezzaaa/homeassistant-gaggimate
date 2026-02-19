@@ -8,6 +8,21 @@ A custom Home Assistant integration for GaggiMate espresso machines with full We
 
 ## Features
 
+### 🎨 Custom Dashboard Card
+A beautiful, unified Lovelace card for complete machine control:
+
+![GaggiMate Dashboard Card](images/gaggimate-card.png)
+
+**Features:**
+- **Visual Editor**: Easy configuration through the Lovelace UI
+- **Real-time Dials**: Temperature and pressure with target indicators
+- **Mode Control**: Quick-access buttons for Standby, Brew, Steam, Water, and Grind modes
+- **Profile Selection**: Dropdown to switch between brewing profiles
+- **Weight Display**: Current and target weight monitoring
+- **Responsive Design**: Adapts to your Home Assistant theme
+
+The card is automatically installed with the integration and appears in the Lovelace card picker as "GaggiMate".
+
 ### 🔍 Automatic Discovery
 - Discovers GaggiMate devices on the local network via mDNS (hostname: `gaggimate.local`)
 - Automatic device information retrieval (model, hardware version, firmware versions)
