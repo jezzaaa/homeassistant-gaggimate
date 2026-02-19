@@ -1,10 +1,11 @@
 {
   "domain": "gaggimate",
   "name": "GaggiMate",
-  "codeowners": ["@jpl"],
+  "codeowners": ["@jezzaaa"],
   "config_flow": true,
+  "dependencies": ["frontend"],
   "documentation": "https://github.com/jniebuhr/gaggimate",
   "integration_type": "device",
   "iot_class": "local_push",
-  "version": "0.2.1-beta.2"
+  "version": "0.2.1-beta.3"
 }

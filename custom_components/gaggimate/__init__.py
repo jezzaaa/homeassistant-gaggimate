@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import GaggiMateCoordinator
@@ -14,6 +15,19 @@ from .coordinator import GaggiMateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 type GaggiMateConfigEntry = ConfigEntry[GaggiMateCoordinator]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the GaggiMate component."""
+    # Register the Lovelace card
+    hass.http.register_static_path(
+        f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
+        hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
+        True,
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: GaggiMateConfigEntry) -> bool:

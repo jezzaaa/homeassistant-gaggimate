@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1-beta.3] - 2026-02-19
+
+**Pre-release for testing**
+
+### Added
+- Custom Lovelace dashboard card (gaggimate-card.js) for unified machine control
+- Visual card editor with device selection and display options
+- Real-time temperature and pressure dials with target indicators
+- Mode selector buttons (Standby, Brew, Steam, Water, Grind)
+- Profile selector dropdown
+- Current and target weight display
+- Frontend resource registration for HACS distribution
+
+### Changed
+- Updated codeowners from @jpl to @jezzaaa in manifest.json
+
 ## [0.2.1-beta.2] - 2026-02-19
 
 **Pre-release for testing**
