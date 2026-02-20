@@ -19,11 +19,6 @@ from .const import (
     WS_TIMEOUT,
     RECONNECT_INTERVAL,
     OTA_REFRESH_INTERVAL,
-    WS_REQ_OTA_SETTINGS,
-    WS_RES_OTA_SETTINGS,
-    WS_EVT_STATUS,
-    WS_RES_PROFILES_LIST,
-    API_SCALES_SCAN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,13 +104,13 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         msg_type = data.get("tp")
                         _LOGGER.debug("Received WebSocket message type %s: %s", msg_type, data)
                         
-                        if msg_type == WS_EVT_STATUS:
+                        if msg_type == "evt:status":
                             # Status update - merge with existing data
                             current_data = self.data or {}
                             updated_data = {**current_data, **data}
                             self.async_set_updated_data(updated_data)
                         
-                        elif msg_type == WS_RES_OTA_SETTINGS:
+                        elif msg_type == "res:ota-settings":
                             # OTA settings response
                             self._ota_data = data
                             # Merge with current data
@@ -123,7 +118,7 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             updated_data = {**current_data, **data}
                             self.async_set_updated_data(updated_data)
                         
-                        elif msg_type == WS_RES_PROFILES_LIST:
+                        elif msg_type == "res:profiles:list":
                             # Profiles list response
                             self._profiles = data.get("profiles", [])
                             _LOGGER.info("Updated profiles list: %d profiles available", len(self._profiles))
@@ -180,7 +175,7 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _request_ota_settings(self) -> None:
         """Request OTA settings from device."""
-        await self.send_command({"tp": WS_REQ_OTA_SETTINGS})
+        await self.send_command({"tp": "req:ota-settings"})
 
     async def send_command(self, command: dict[str, Any]) -> None:
         """Send a command to the device via WebSocket."""
@@ -220,7 +215,7 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def scan_scales(self) -> bool:
         """Trigger Bluetooth scale scan via HTTP."""
         try:
-            url = f"http://{self.host}{API_SCALES_SCAN}"
+            url = f"http://{self.host}/api/scales/scan"
             async with self._session.post(url, timeout=10) as response:
                 if response.status == 200:
                     result = await response.json()
