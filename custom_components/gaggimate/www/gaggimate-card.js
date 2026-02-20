@@ -1,10 +1,10 @@
 // --- IMPORT LIT FROM HOME ASSISTANT ---
-// Import Lit from the Home Assistant frontend
-import {
-  LitElement,
-  html,
-  css,
-} from "https://unpkg.com/lit@3.1.2/index.js?module";
+// Use Lit that is already bundled inside Home Assistant - no external CDN needed.
+// This works on LAN, Nabu Casa, mobile, and offline.
+const LitElement = Object.getPrototypeOf(
+  customElements.get("ha-panel-lovelace") || customElements.get("hc-lovelace")
+);
+const { html, css } = LitElement;
 
 // --- HELPERS ---
 const getGaggiMateDevices = (hass) => {
