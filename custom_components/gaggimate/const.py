@@ -14,8 +14,11 @@ RECONNECT_INTERVAL = 30
 # Update intervals
 OTA_REFRESH_INTERVAL = 900  # 15 minutes
 
+# API paths
+API_SETTINGS_PATH = "/api/settings"
+
 # Platforms
-PLATFORMS = ["sensor", "binary_sensor", "switch", "select", "button", "update"]
+PLATFORMS = ["sensor", "binary_sensor", "switch", "select", "button", "number", "update"]
 
 # Mode constants
 MODE_STANDBY = 0

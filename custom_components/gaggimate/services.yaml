@@ -1,0 +1,25 @@
+# Services for GaggiMate integration
+
+raise_temperature:
+  name: Raise temperature
+  description: Increase the target temperature by 1°C
+  fields:
+    device_id:
+      name: Device ID
+      description: The device identifier (device slug from entity names)
+      required: true
+      example: "gaggimate"
+      selector:
+        text:
+
+lower_temperature:
+  name: Lower temperature
+  description: Decrease the target temperature by 1°C
+  fields:
+    device_id:
+      name: Device ID
+      description: The device identifier (device slug from entity names)
+      required: true
+      example: "gaggimate"
+      selector:
+        text:

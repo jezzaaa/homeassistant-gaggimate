@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3-beta.2] - 2026-02-21
+
+**Pre-release for testing**
+
+### Added
+- **Number Entities** for automation-friendly control
+  - Target Temperature number entity (0-160°C) - set exact temperature via automations
+  - Target Pressure number entity (0-15 bar) - set exact pressure via automations
+  - Target Weight number entity (5-250g) - set exact weight via automations
+  - Uses HTTP REST API for direct value setting
+  - Ranges match firmware limits exactly
+- **Temperature Control Buttons** on dashboard card
+  - Plus (+) and minus (-) buttons on temperature dial
+  - Buttons enabled only in Brew mode (as per firmware requirements)
+  - Visual feedback with hover effects and disabled states
+- **Custom Services** for temperature adjustment
+  - `gaggimate.raise_temperature` - increase temperature by 1°C
+  - `gaggimate.lower_temperature` - decrease temperature by 1°C
+  - Services documented in services.yaml for automation UI
+
+### Changed
+- Coordinator now supports both WebSocket (for +/- buttons) and HTTP REST API (for number entities)
+- Dashboard card temperature dial now includes interactive control buttons
+
 ## [0.2.3-beta.1] - 2026-02-21
 
 **Pre-release for testing**

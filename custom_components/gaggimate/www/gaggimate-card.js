@@ -84,7 +84,7 @@ class GaggiMateCard extends LitElement {
     return stateObj ? parseFloat(stateObj.state) || 0 : 0;
   }
 
-  _renderDial(label, curSuffix, tgtSuffix, max, unit) {
+  _renderDial(label, curSuffix, tgtSuffix, max, unit, showButtons = false) {
     const cur = this._getVal(curSuffix);
     const tgt = this._getVal(tgtSuffix);
     const angle = (val) => (Math.min(val, max) / max) * 270 - 135;
@@ -96,6 +96,11 @@ class GaggiMateCard extends LitElement {
     const end = pt(-135);
     const path = `M ${start.x} ${start.y} A 40 40 0 ${aTgt + 135 <= 180 ? 0 : 1} 0 ${end.x} ${end.y}`;
 
+    // Check if we're in Brew mode for temperature buttons
+    const slug = this.config.device_name;
+    const mode = this.hass.states[`select.${slug}_mode`]?.state || "Standby";
+    const buttonsEnabled = showButtons && mode === "Brew";
+
     return html`
       <div class="dial">
         <div class="d-label">${label}</div>
@@ -106,6 +111,20 @@ class GaggiMateCard extends LitElement {
             <circle class="handle" cx="50" cy="10" r="4.5" transform="rotate(${aTgt} 50 50)" />
             <circle class="dot" cx="50" cy="10" r="2.5" transform="rotate(${angle(cur)} 50 50)" />
           </svg>
+          ${showButtons ? html`
+            <button 
+              class="temp-btn temp-minus ${!buttonsEnabled ? 'disabled' : ''}" 
+              @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'lower_temperature', {device_id: slug})}"
+              ?disabled="${!buttonsEnabled}">
+              <ha-icon icon="mdi:minus"></ha-icon>
+            </button>
+            <button 
+              class="temp-btn temp-plus ${!buttonsEnabled ? 'disabled' : ''}" 
+              @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'raise_temperature', {device_id: slug})}"
+              ?disabled="${!buttonsEnabled}">
+              <ha-icon icon="mdi:plus"></ha-icon>
+            </button>
+          ` : ''}
           <div class="d-data">
             <div class="v-main">${cur.toFixed(label === "PRESSURE" ? 2 : 1)}</div>
             <div class="v-tgt">${tgt.toFixed(1)}${unit}</div>
@@ -126,7 +145,7 @@ class GaggiMateCard extends LitElement {
         <div class="card-header">${this.config.name}</div>
         ${profile ? html`<div class="pad"><ha-select label="Profile" .value="${profile.state}" @selected="${(e) => this.hass.callService('select', 'select_option', {entity_id: profile.entity_id, option: e.target.value})}">${profile.attributes.options.map(opt => html`<mwc-list-item .value="${opt}">${opt}</mwc-list-item>`)}</ha-select></div>` : ''}
         <div class="modes">${modes.map(m => html`<div class="m-btn ${mode === m ? 'active' : ''}" @click="${() => this.hass.callService('select', 'select_option', {entity_id: `select.${slug}_mode`, option: m})}">${m.toUpperCase()}</div>`)}</div>
-        <div class="dials">${this._renderDial("TEMPERATURE", "current_temperature", "target_temperature", 110, "°C")}${this._renderDial("PRESSURE", "current_pressure", "target_pressure", 15, " Bar")}</div>
+        <div class="dials">${this._renderDial("TEMPERATURE", "current_temperature", "target_temperature", 110, "°C", true)}${this._renderDial("PRESSURE", "current_pressure", "target_pressure", 15, " Bar")}</div>
         ${this.config.show_weight !== false ? html`<div class="weight"><div class="w-sec"><div class="w-l">CURRENT</div><div>${this._getVal("current_weight").toFixed(1)}g</div></div><div class="divider"></div><div class="w-sec"><div class="w-l">TARGET</div><div>${this._getVal("target_weight").toFixed(1)}g</div></div></div>` : ''}
       </ha-card>`;
   }
@@ -153,6 +172,12 @@ class GaggiMateCard extends LitElement {
       .d-data { position: absolute; top: 55%; width: 100%; transform: translateY(-50%); pointer-events: none; }
       .v-main { font-size: 22px; font-weight: bold; color: var(--primary-text-color); }
       .v-tgt { font-size: 11px; color: var(--error-color, #e91e63); font-weight: bold; }
+      .temp-btn { position: absolute; width: 32px; height: 32px; border-radius: 50%; background: var(--card-background-color); border: 2px solid var(--brand); color: var(--brand); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; pointer-events: auto; }
+      .temp-btn:hover:not(.disabled) { background: var(--brand); color: white; transform: scale(1.1); }
+      .temp-btn.disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--disabled-text-color); color: var(--disabled-text-color); }
+      .temp-minus { left: -5%; top: 50%; transform: translateY(-50%); }
+      .temp-plus { right: -5%; top: 50%; transform: translateY(-50%); }
+      .temp-btn ha-icon { --mdc-icon-size: 20px; }
       .weight { margin: 0 16px 16px; padding: 12px; background: var(--secondary-background-color); border-radius: 12px; display: flex; justify-content: space-around; text-align: center; color: var(--primary-text-color); }
       .w-l { font-size: 9px; opacity: 0.5; font-weight: bold; }
       .divider { width: 1px; background: var(--divider-color); }

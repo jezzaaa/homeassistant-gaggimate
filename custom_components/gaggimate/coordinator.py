@@ -19,6 +19,7 @@ from .const import (
     WS_TIMEOUT,
     RECONNECT_INTERVAL,
     OTA_REFRESH_INTERVAL,
+    API_SETTINGS_PATH,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -224,6 +225,56 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.error("Error scanning scales: %s", err)
             return False
+
+    async def set_target_temperature(self, temperature: float) -> None:
+        """Set target temperature via HTTP API."""
+        try:
+            url = f"http://{self.host}{API_SETTINGS_PATH}"
+            data = {"targetTemperature": temperature}
+            async with self._session.post(url, json=data, timeout=10) as response:
+                if response.status == 200:
+                    _LOGGER.debug("Set target temperature to %.1f°C", temperature)
+                else:
+                    _LOGGER.error("Failed to set target temperature: HTTP %s", response.status)
+        except Exception as err:
+            _LOGGER.error("Error setting target temperature: %s", err)
+            raise
+
+    async def set_target_pressure(self, pressure: float) -> None:
+        """Set target pressure via HTTP API."""
+        try:
+            url = f"http://{self.host}{API_SETTINGS_PATH}"
+            data = {"targetPressure": pressure}
+            async with self._session.post(url, json=data, timeout=10) as response:
+                if response.status == 200:
+                    _LOGGER.debug("Set target pressure to %.2f bar", pressure)
+                else:
+                    _LOGGER.error("Failed to set target pressure: HTTP %s", response.status)
+        except Exception as err:
+            _LOGGER.error("Error setting target pressure: %s", err)
+            raise
+
+    async def set_target_weight(self, weight: float) -> None:
+        """Set target weight via HTTP API."""
+        try:
+            url = f"http://{self.host}{API_SETTINGS_PATH}"
+            data = {"targetWeight": weight}
+            async with self._session.post(url, json=data, timeout=10) as response:
+                if response.status == 200:
+                    _LOGGER.debug("Set target weight to %.1fg", weight)
+                else:
+                    _LOGGER.error("Failed to set target weight: HTTP %s", response.status)
+        except Exception as err:
+            _LOGGER.error("Error setting target weight: %s", err)
+            raise
+
+    async def raise_temperature(self) -> None:
+        """Raise target temperature by 1°C via WebSocket."""
+        await self.send_command({"tp": "req:raise-temp"})
+
+    async def lower_temperature(self) -> None:
+        """Lower target temperature by 1°C via WebSocket."""
+        await self.send_command({"tp": "req:lower-temp"})
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""
