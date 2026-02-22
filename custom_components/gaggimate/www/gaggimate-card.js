@@ -1,4 +1,4 @@
-// --- IMPORT LIT FROM HOME ASSISTANT ---
+// --- IMPORT LIT ---
 import {
   LitElement,
   html,
