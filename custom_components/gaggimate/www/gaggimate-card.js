@@ -1,5 +1,4 @@
 // --- IMPORT LIT FROM HOME ASSISTANT ---
-// Import Lit from the Home Assistant frontend
 import {
   LitElement,
   html,
@@ -17,6 +16,14 @@ const getGaggiMateDevices = (hass) => {
     }));
 };
 
+// Lighten a hex color by blending with white at the given ratio (0=original, 1=white)
+const lightenColor = (hex, ratio) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${Math.round(r + (255 - r) * ratio)},${Math.round(g + (255 - g) * ratio)},${Math.round(b + (255 - b) * ratio)})`;
+};
+
 // --- VISUAL EDITOR ---
 class GaggiMateCardEditor extends LitElement {
   static get properties() { return { hass: {}, _config: {} }; }
@@ -26,19 +33,23 @@ class GaggiMateCardEditor extends LitElement {
     const target = ev.target;
     const config = { ...this._config };
     const value = target.tagName === "HA-SWITCH" ? target.checked : target.value;
-
     config[target.configValue] = value;
-
     if (target.configValue === "device_name") {
       const selected = getGaggiMateDevices(this.hass).find(d => d.slug === value);
       if (selected) config.name = selected.name;
     }
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
 
+  _resetColor() {
+    const config = { ...this._config };
+    delete config.color;
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
   }
 
   render() {
     if (!this.hass || !this._config) return html``;
+    const currentColor = this._config.color || "#ff9800";
     return html`
       <div class="card-config">
         <label class="label">Machine</label>
@@ -50,6 +61,13 @@ class GaggiMateCardEditor extends LitElement {
         <label class="label">Title</label>
         <input class="std-input" type="text" .value="${this._config.name || ""}" .configValue="${"name"}" @input="${this._valueChanged}" />
 
+        <label class="label">Accent Color</label>
+        <div class="color-row">
+          <input type="color" class="color-input" .value="${currentColor}" .configValue="${"color"}" @input="${this._valueChanged}" />
+          <span class="color-hint">${currentColor}</span>
+          <button class="reset-btn" @click="${this._resetColor}">Reset to default</button>
+        </div>
+
         <div class="sw-row"><span>Show Grinder</span><ha-switch .checked="${this._config.show_grinder !== false}" .configValue="${"show_grinder"}" @change="${this._valueChanged}"></ha-switch></div>
         <div class="sw-row"><span>Show Weight</span><ha-switch .checked="${this._config.show_weight !== false}" .configValue="${"show_weight"}" @change="${this._valueChanged}"></ha-switch></div>
       </div>`;
@@ -59,7 +77,12 @@ class GaggiMateCardEditor extends LitElement {
     return css`
       .card-config { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
       .label { font-weight: 500; font-size: 14px; color: var(--primary-text-color); }
-      .std-input { width: 100%; padding: 10px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); }
+      .std-input { width: 100%; padding: 10px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); box-sizing: border-box; }
+      .color-row { display: flex; align-items: center; gap: 10px; }
+      .color-input { width: 48px; height: 36px; border: 1px solid var(--divider-color); border-radius: 4px; padding: 2px; cursor: pointer; background: none; }
+      .color-hint { font-size: 13px; color: var(--secondary-text-color); font-family: monospace; flex: 1; }
+      .reset-btn { padding: 4px 10px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--secondary-background-color); color: var(--primary-text-color); cursor: pointer; font-size: 12px; }
+      .reset-btn:hover { background: var(--divider-color); }
       .sw-row { display: flex; justify-content: space-between; align-items: center; color: var(--primary-text-color); }
     `;
   }
@@ -78,56 +101,113 @@ class GaggiMateCard extends LitElement {
 
   setConfig(config) { this.config = config; }
 
-  _getVal(suffix, domain = "sensor") {
+  _getVal(suffix) {
     if (!this.hass || !this.config) return 0;
-    const stateObj = this.hass.states[`${domain}.${this.config.device_name}_${suffix}`];
+    const stateObj = this.hass.states[`sensor.${this.config.device_name}_${suffix}`];
     return stateObj ? parseFloat(stateObj.state) || 0 : 0;
   }
 
-  _renderDial(label, curSuffix, tgtSuffix, max, unit, showButtons = false) {
+  _getUnit(suffix) {
+    if (!this.hass || !this.config) return "";
+    const stateObj = this.hass.states[`sensor.${this.config.device_name}_${suffix}`];
+    return stateObj?.attributes?.unit_of_measurement || "";
+  }
+
+  // stroke-dasharray arc segment technique
+  // Arc: radius=40, center=(50,50), 270° from -135° to +135° clockwise
+  // Total arc circumference = 2*PI*40*(270/360) = 188.496
+  _dashArc(fromPct, toPct) {
+    const C = 2 * Math.PI * 40 * (270 / 360); // 188.496
+    const segLen = Math.max((toPct - fromPct) * C, 0);
+    return {
+      dashArray: `${segLen} ${C - segLen + 1}`,
+      dashOffset: -(fromPct * C - 0.5)
+    };
+  }
+
+  _renderDial(label, curSuffix, tgtSuffix, max, showButtons = false) {
     const cur = this._getVal(curSuffix);
     const tgt = this._getVal(tgtSuffix);
-    const angle = (val) => (Math.min(val, max) / max) * 270 - 135;
-    const rad = (deg) => (deg - 90) * Math.PI / 180.0;
-    const pt = (deg) => ({ x: 50 + 40 * Math.cos(rad(deg)), y: 50 + 40 * Math.sin(rad(deg)) });
+    const unit = this._getUnit(curSuffix);
+    const decimals = label === "PRESSURE" ? 2 : 1;
+    const brand = this.config.color || "#ff9800";
+    const brandMid = lightenColor(brand, 0.5);
 
-    const aTgt = angle(tgt);
-    const start = pt(aTgt);
-    const end = pt(-135);
-    const path = `M ${start.x} ${start.y} A 40 40 0 ${aTgt + 135 <= 180 ? 0 : 1} 0 ${end.x} ${end.y}`;
+    const curPct = Math.min(Math.max(cur, 0), max) / max;
+    const tgtPct = Math.min(Math.max(tgt, 0), max) / max;
 
-    // Check if we're in Brew mode for temperature buttons
+    // Heating: current is more than 0.5 below target (only for temp dial)
+    const isHeating = showButtons && cur < tgt - 0.5;
+
     const slug = this.config.device_name;
     const mode = this.hass.states[`select.${slug}_mode`]?.state || "Standby";
     const buttonsEnabled = showButtons && mode === "Brew";
+
+    // Dot/handle positions on the arc (radius=40, center=50,50)
+    const toRad = (pct) => ((- 135 + pct * 270) - 90) * Math.PI / 180;
+    const dotX = (50 + 40 * Math.cos(toRad(curPct))).toFixed(2);
+    const dotY = (50 + 40 * Math.sin(toRad(curPct))).toFixed(2);
+    const handleX = (50 + 40 * Math.cos(toRad(tgtPct))).toFixed(2);
+    const handleY = (50 + 40 * Math.sin(toRad(tgtPct))).toFixed(2);
+
+    // Zone 1: arc-start → cur (full brand) when heating; arc-start → tgt when not
+    // Zone 2: cur → tgt (mid brand) when heating; zero-length when not
+    const zone1 = this._dashArc(0, isHeating ? curPct : tgtPct);
+    const zone2 = this._dashArc(isHeating ? curPct : tgtPct, isHeating ? tgtPct : tgtPct);
+
+    // Colors
+    const zone1Color = (isHeating || tgtPct > 0) ? brand : "transparent";
+    const zone2Color = isHeating ? brandMid : "transparent";
+    const dotColor = isHeating ? brand : "#aaa";
+    const handleStroke = isHeating ? brandMid : "#aaa";
+
+    const FULL_ARC = "M 22 78 A 40 40 0 1 1 78 78";
 
     return html`
       <div class="dial">
         <div class="d-label">${label}</div>
         <div class="d-rel">
-          <svg viewBox="0 0 100 100">
-            <path class="track" d="M 22 78 A 40 40 0 1 1 78 78" />
-            <path class="fill ${cur < tgt - 0.5 ? 'active' : ''}" d="${path}" />
-            <circle class="handle" cx="50" cy="10" r="4.5" transform="rotate(${aTgt} 50 50)" />
-            <circle class="dot" cx="50" cy="10" r="2.5" transform="rotate(${angle(cur)} 50 50)" />
+          <svg viewBox="0 0 100 100" style="overflow:visible">
+            <!-- Grey background track -->
+            <path fill="none" stroke="#ccc" stroke-width="8" stroke-linecap="round" d="${FULL_ARC}" />
+            <!-- Zone 1: achieved (full brand) -->
+            <path fill="none" stroke="${zone1Color}" stroke-width="8" stroke-linecap="round"
+              d="${FULL_ARC}"
+              stroke-dasharray="${zone1.dashArray}"
+              stroke-dashoffset="${zone1.dashOffset}" />
+            <!-- Zone 2: heating (mid brand) -->
+            <path fill="none" stroke="${zone2Color}" stroke-width="8" stroke-linecap="round"
+              d="${FULL_ARC}"
+              stroke-dasharray="${zone2.dashArray}"
+              stroke-dashoffset="${zone2.dashOffset}" />
+            <!-- Target handle: open circle on track -->
+            <circle fill="white" stroke="${handleStroke}" stroke-width="1.5" cx="${handleX}" cy="${handleY}" r="3" />
+            <!-- Current dot: small filled circle on track -->
+            <circle fill="${dotColor}" cx="${dotX}" cy="${dotY}" r="2.5" />
           </svg>
-          ${showButtons ? html`
-            <button 
-              class="temp-btn temp-minus ${!buttonsEnabled ? 'disabled' : ''}" 
-              @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'lower_temperature', {device_id: slug})}"
-              ?disabled="${!buttonsEnabled}">
-              <ha-icon icon="mdi:minus"></ha-icon>
-            </button>
-            <button 
-              class="temp-btn temp-plus ${!buttonsEnabled ? 'disabled' : ''}" 
-              @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'raise_temperature', {device_id: slug})}"
-              ?disabled="${!buttonsEnabled}">
-              <ha-icon icon="mdi:plus"></ha-icon>
-            </button>
-          ` : ''}
+
           <div class="d-data">
-            <div class="v-main">${cur.toFixed(label === "PRESSURE" ? 2 : 1)}</div>
-            <div class="v-tgt">${tgt.toFixed(1)}${unit}</div>
+            <div class="v-tgt-row">
+              ${showButtons ? html`
+                <button class="temp-btn ${!buttonsEnabled ? 'disabled' : ''}"
+                  @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'lower_temperature', {device_id: slug})}"
+                  ?disabled="${!buttonsEnabled}">−</button>
+              ` : ''}
+              <div class="v-tgt">${tgt.toFixed(decimals)}<span class="v-unit">${unit}</span></div>
+              ${showButtons ? html`
+                <button class="temp-btn ${!buttonsEnabled ? 'disabled' : ''}"
+                  @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'raise_temperature', {device_id: slug})}"
+                  ?disabled="${!buttonsEnabled}">+</button>
+              ` : ''}
+            </div>
+            <div class="v-sep"></div>
+            <div class="v-cur-row">
+              <span class="v-cur">${cur.toFixed(decimals)}<span class="v-unit">${unit}</span></span>
+              ${showButtons ? html`
+                <ha-icon class="heat-icon ${isHeating ? 'active' : ''}" icon="mdi:heat-wave"
+                  style="${isHeating ? `color:${brand}` : ''}"></ha-icon>
+              ` : ''}
+            </div>
           </div>
         </div>
       </div>`;
@@ -138,46 +218,80 @@ class GaggiMateCard extends LitElement {
     const slug = this.config.device_name;
     const mode = this.hass.states[`select.${slug}_mode`]?.state || "Standby";
     const profile = this.hass.states[`select.${slug}_profile`];
+    const brand = this.config.color || "#ff9800";
     const modes = ["Standby", "Brew", "Steam", "Water", ...(this.config.show_grinder !== false ? ["Grind"] : [])];
 
     return html`
       <ha-card>
         <div class="card-header">${this.config.name}</div>
-        ${profile ? html`<div class="pad"><ha-select label="Profile" .value="${profile.state}" @selected="${(e) => this.hass.callService('select', 'select_option', {entity_id: profile.entity_id, option: e.target.value})}">${profile.attributes.options.map(opt => html`<mwc-list-item .value="${opt}">${opt}</mwc-list-item>`)}</ha-select></div>` : ''}
-        <div class="modes">${modes.map(m => html`<div class="m-btn ${mode === m ? 'active' : ''}" @click="${() => this.hass.callService('select', 'select_option', {entity_id: `select.${slug}_mode`, option: m})}">${m.toUpperCase()}</div>`)}</div>
-        <div class="dials">${this._renderDial("TEMPERATURE", "current_temperature", "target_temperature", 110, "°C", true)}${this._renderDial("PRESSURE", "current_pressure", "target_pressure", 15, " Bar")}</div>
-        ${this.config.show_weight !== false ? html`<div class="weight"><div class="w-sec"><div class="w-l">CURRENT</div><div>${this._getVal("current_weight").toFixed(1)}g</div></div><div class="divider"></div><div class="w-sec"><div class="w-l">TARGET</div><div>${this._getVal("target_weight").toFixed(1)}g</div></div></div>` : ''}
+        ${profile ? html`
+          <div class="pad">
+            <ha-select label="Profile" .value="${profile.state}"
+              @selected="${(e) => this.hass.callService('select', 'select_option', {entity_id: profile.entity_id, option: e.target.value})}">
+              ${profile.attributes.options.map(opt => html`<mwc-list-item .value="${opt}">${opt}</mwc-list-item>`)}
+            </ha-select>
+          </div>` : ''}
+        <div class="modes">
+          ${modes.map(m => html`
+            <div class="m-btn ${mode === m ? 'active' : ''}"
+              style="${mode === m ? `background:${brand};` : ''}"
+              @click="${() => this.hass.callService('select', 'select_option', {entity_id: `select.${slug}_mode`, option: m})}">
+              ${m.toUpperCase()}
+            </div>`)}
+        </div>
+        <div class="dials">
+          ${this._renderDial("TEMPERATURE", "current_temperature", "target_temperature", 110, true)}
+          ${this._renderDial("PRESSURE", "current_pressure", "target_pressure", 15)}
+        </div>
+        ${this.config.show_weight !== false ? html`
+          <div class="weight">
+            <div class="w-sec"><div class="w-l">CURRENT</div><div>${this._getVal("current_weight").toFixed(1)}g</div></div>
+            <div class="divider"></div>
+            <div class="w-sec"><div class="w-l">TARGET</div><div>${this._getVal("target_weight").toFixed(1)}g</div></div>
+          </div>` : ''}
       </ha-card>`;
   }
 
   static get styles() {
     return css`
-      :host { --brand: var(--accent-color, #ff9800); }
       .card-header { padding: 24px 16px 16px; font-size: var(--ha-card-header-font-size, 24px); line-height: var(--ha-card-header-line-height, 32px); color: var(--ha-card-header-color, var(--primary-text-color)); }
       .pad { padding: 0 16px 16px; }
       ha-select { width: 100%; }
       .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 8px; padding: 0 16px 16px; }
       .m-btn { background: var(--secondary-background-color); padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; color: var(--primary-text-color); }
-      .m-btn.active { background: var(--brand); color: white; }
-      .dials { display: flex; justify-content: space-around; padding-bottom: 16px; }
-      .dial { width: 42%; text-align: center; }
+      .m-btn.active { color: white; }
+      .dials { display: flex; justify-content: space-around; padding: 0 8px 16px; }
+      .dial { width: 46%; text-align: center; }
       .d-label { font-size: 10px; font-weight: bold; opacity: 0.6; margin-bottom: 4px; color: var(--primary-text-color); }
       .d-rel { position: relative; }
-      svg { width: 100%; overflow: visible; }
-      .track { fill: none; stroke: var(--divider-color); stroke-width: 8; stroke-linecap: round; }
-      .fill { fill: none; stroke: var(--disabled-text-color); stroke-width: 8; stroke-linecap: round; }
-      .fill.active { stroke: var(--brand); }
-      .handle { fill: var(--card-background-color); stroke: var(--divider-color); stroke-width: 1; }
-      .dot { fill: var(--primary-text-color); }
-      .d-data { position: absolute; top: 55%; width: 100%; transform: translateY(-50%); pointer-events: none; }
-      .v-main { font-size: 22px; font-weight: bold; color: var(--primary-text-color); }
-      .v-tgt { font-size: 11px; color: var(--error-color, #e91e63); font-weight: bold; }
-      .temp-btn { position: absolute; width: 32px; height: 32px; border-radius: 50%; background: var(--card-background-color); border: 2px solid var(--brand); color: var(--brand); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; pointer-events: auto; }
-      .temp-btn:hover:not(.disabled) { background: var(--brand); color: white; transform: scale(1.1); }
-      .temp-btn.disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--disabled-text-color); color: var(--disabled-text-color); }
-      .temp-minus { left: -5%; top: 50%; transform: translateY(-50%); }
-      .temp-plus { right: -5%; top: 50%; transform: translateY(-50%); }
-      .temp-btn ha-icon { --mdc-icon-size: 20px; }
+      svg { width: 100%; display: block; }
+      /* Data overlay: centered at 56% so target temp sits at visual center */
+      .d-data { position: absolute; top: 56%; width: 100%; transform: translateY(-50%); text-align: center; pointer-events: none; }
+      /* Target temp row: flex row with buttons flanking the value */
+      .v-tgt-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+      .v-tgt { font-size: 22px; font-weight: bold; color: var(--primary-text-color); line-height: 1.1; }
+      .v-unit { font-size: 12px; font-weight: normal; opacity: 0.7; }
+      .v-sep { height: 1px; background: var(--divider-color); margin: 4px 20%; }
+      .v-cur-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
+      .v-cur { font-size: 13px; color: var(--secondary-text-color); }
+      .heat-icon { --mdc-icon-size: 16px; color: var(--disabled-text-color); opacity: 0.4; }
+      .heat-icon.active { opacity: 1; }
+      /* +/- buttons: inline siblings of target temp, vertically centred by flexbox */
+      .temp-btn {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        background: var(--card-background-color);
+        border: 2px solid var(--primary-text-color);
+        color: var(--primary-text-color);
+        cursor: pointer;
+        font-size: 18px; font-weight: bold; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0;
+        pointer-events: auto;
+        flex-shrink: 0;
+      }
+      .temp-btn:hover:not(.disabled) { background: var(--primary-text-color); color: var(--card-background-color); }
+      .temp-btn.disabled { opacity: 0.3; cursor: not-allowed; }
       .weight { margin: 0 16px 16px; padding: 12px; background: var(--secondary-background-color); border-radius: 12px; display: flex; justify-content: space-around; text-align: center; color: var(--primary-text-color); }
       .w-l { font-size: 9px; opacity: 0.5; font-weight: bold; }
       .divider { width: 1px; background: var(--divider-color); }
