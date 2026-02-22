@@ -5,17 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.3-beta.3] - 2026-02-22
-
-**Pre-release for testing**
-
-### Fixed
-- Temperature +/- buttons on dashboard card now correctly align with the target temperature value
-  - Buttons are now flex siblings of the target temperature text, ensuring perfect vertical alignment regardless of layout changes
-
-## [0.2.3-beta.2] - 2026-02-21
-
-**Pre-release for testing**
+## [0.2.3] - 2026-02-22
 
 ### Added
 - **Number Entities** for automation-friendly control
@@ -36,16 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Coordinator now supports both WebSocket (for +/- buttons) and HTTP REST API (for number entities)
 - Dashboard card temperature dial now includes interactive control buttons
-
-## [0.2.3-beta.1] - 2026-02-21
-
-**Pre-release for testing**
-
-### Changed
 - Improved code quality by removing unused constants and replacing rarely-used constants with string literals for better readability
-- Removed 7 unused constants from const.py (WS_REQ_OTA_START, WS_REQ_CHANGE_MODE, WS_REQ_PROFILES_LIST, WS_REQ_PROFILES_SELECT, WS_RES_PROFILES_SELECT, DEFAULT_PORT, SCAN_INTERVAL)
-- Replaced WebSocket message type constants with inline strings in coordinator.py for improved code clarity (constants used only 1-2 times each)
-- Kept MODE constants (MODE_STANDBY through MODE_GRIND) as they provide meaningful documentation for numeric mode values
+
+### Fixed
+- Dashboard card now loads correctly via Nabu Casa remote access and the Android companion app
+  - Replaced `add_extra_js_url()` with Lovelace storage resource registration, which works for all access methods
+  - Card now appears in Dashboard > Resources as expected
+- Temperature +/- buttons on dashboard card now correctly align with the target temperature value
 
 ## [0.2.2] - 2026-02-20
 

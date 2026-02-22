@@ -5,7 +5,6 @@ import logging
 
 import voluptuous as vol
 
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
@@ -29,6 +28,8 @@ type GaggiMateConfigEntry = ConfigEntry[GaggiMateCoordinator]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+CARD_URL = f"/hacsfiles/{DOMAIN}/gaggimate-card.js"
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the GaggiMate component."""
@@ -36,17 +37,47 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
-                url_path=f"/hacsfiles/{DOMAIN}/gaggimate-card.js",
+                url_path=CARD_URL,
                 path=hass.config.path(f"custom_components/{DOMAIN}/www/gaggimate-card.js"),
-                cache_headers=True,
+                cache_headers=False,
             )
         ]
     )
-    
-    # Register the card as a Lovelace resource
-    add_extra_js_url(hass, f"/hacsfiles/{DOMAIN}/gaggimate-card.js")
-    
+
+    # Register the card as a Lovelace resource in storage so it loads via
+    # Nabu Casa, the Android app, and any other remote access method.
+    # add_extra_js_url() only works for direct local HA access.
+    hass.async_create_task(_async_register_lovelace_resource(hass))
+
     return True
+
+
+async def _async_register_lovelace_resource(hass: HomeAssistant) -> None:
+    """Add the dashboard card to Lovelace resources if not already present."""
+    try:
+        lovelace = hass.data.get("lovelace")
+        if lovelace is None:
+            _LOGGER.warning("Lovelace not available, cannot register GaggiMate card resource")
+            return
+
+        resources = lovelace.resources
+
+        # Ensure resources are loaded from storage
+        if not resources.loaded:
+            await resources.async_load()
+
+        # Check if our resource is already registered
+        existing_urls = {item.get("url") for item in resources.async_items()}
+        if CARD_URL in existing_urls:
+            _LOGGER.debug("GaggiMate card resource already registered")
+            return
+
+        # Add the resource
+        await resources.async_create_item({"res_type": "module", "url": CARD_URL})
+        _LOGGER.info("Registered GaggiMate dashboard card as Lovelace resource: %s", CARD_URL)
+
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.error("Failed to register GaggiMate card as Lovelace resource: %s", err)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: GaggiMateConfigEntry) -> bool:
