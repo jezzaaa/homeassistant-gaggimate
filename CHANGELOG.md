@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4-beta.1] - 2026-02-23
+
+**Pre-release for testing**
+
+### Added
+- **Draggable temperature ring** on dashboard card
+  - Drag the target temperature handle around the arc in Brew mode to set temperature
+  - Live preview of target temperature while dragging
+  - Drag commits the new temperature via the number entity on release
+
+### Fixed
+- **Temperature no longer resets to 93°C on browser refresh or integration reload**
+  - Root cause: `ha-select` fires a `selected` event on initial render, causing the current profile to be re-selected, which reloads the profile and resets the target temperature to the profile default
+  - Fixed in `select.py`: profile re-select is now skipped if the requested profile is already active
+  - Fixed in `gaggimate-card.js`: profile `@selected` handler now only calls the service when the user actually changes the profile
+
 ## [0.2.3] - 2026-02-22
 
 ### Added

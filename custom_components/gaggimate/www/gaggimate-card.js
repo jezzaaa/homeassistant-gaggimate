@@ -91,7 +91,24 @@ customElements.define("gaggimate-card-editor", GaggiMateCardEditor);
 
 // --- MAIN CARD ---
 class GaggiMateCard extends LitElement {
-  static get properties() { return { hass: {}, config: {} }; }
+  static get properties() {
+    return {
+      hass: {},
+      config: {},
+      _dragTgt: { type: Number },   // live drag value (null when not dragging)
+    };
+  }
+
+  constructor() {
+    super();
+    this._dragTgt = null;
+    this._dragMax = 110;
+    this._dragBound = {
+      move: this._onDragMove.bind(this),
+      end:  this._onDragEnd.bind(this),
+    };
+  }
+
   static getConfigElement() { return document.createElement("gaggimate-card-editor"); }
 
   static getStubConfig(hass) {
@@ -125,9 +142,70 @@ class GaggiMateCard extends LitElement {
     };
   }
 
+  // Convert a pointer event position to an arc percentage (0–1) for the temperature dial.
+  // The arc runs 270° clockwise from -135° (bottom-left) to +135° (bottom-right),
+  // with 0% at the start and 100% at the end.
+  _pointerToArcPct(ev, svgEl) {
+    const rect = svgEl.getBoundingClientRect();
+    // Map pointer to SVG viewBox coordinates (viewBox is 0 0 100 100)
+    const svgX = ((ev.clientX - rect.left) / rect.width) * 100;
+    const svgY = ((ev.clientY - rect.top) / rect.height) * 100;
+    // Angle from center (50,50), in degrees, 0° = up (12 o'clock)
+    const dx = svgX - 50;
+    const dy = svgY - 50;
+    let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI + 90; // 0° = top
+    if (angleDeg < 0) angleDeg += 360;
+    // Arc starts at 225° (bottom-left, -135° from top) and spans 270° clockwise
+    const arcStart = 225;
+    const arcSpan = 270;
+    let arcAngle = angleDeg - arcStart;
+    if (arcAngle < 0) arcAngle += 360;
+    // Clamp to arc span
+    arcAngle = Math.max(0, Math.min(arcSpan, arcAngle));
+    return arcAngle / arcSpan;
+  }
+
+  // --- Drag handlers ---
+  _onHandlePointerDown(ev, svgEl, max) {
+    ev.preventDefault();
+    this._dragMax = max;
+    this._dragSvgEl = svgEl;
+    this._dragTgt = this._getVal("target_temperature");
+    window.addEventListener("pointermove", this._dragBound.move);
+    window.addEventListener("pointerup",   this._dragBound.end);
+    window.addEventListener("pointercancel", this._dragBound.end);
+  }
+
+  _onDragMove(ev) {
+    if (this._dragTgt === null) return;
+    const pct = this._pointerToArcPct(ev, this._dragSvgEl);
+    const raw = pct * this._dragMax;
+    // Round to 0.5°C steps for a smooth but not jittery feel
+    this._dragTgt = Math.round(raw * 2) / 2;
+    this.requestUpdate();
+  }
+
+  _onDragEnd(ev) {
+    window.removeEventListener("pointermove", this._dragBound.move);
+    window.removeEventListener("pointerup",   this._dragBound.end);
+    window.removeEventListener("pointercancel", this._dragBound.end);
+    if (this._dragTgt !== null) {
+      const finalTemp = this._dragTgt;
+      this._dragTgt = null;
+      // Send the new target temperature to HA via the number entity
+      const slug = this.config.device_name;
+      this.hass.callService("number", "set_value", {
+        entity_id: `number.${slug}_target_temperature`,
+        value: finalTemp,
+      });
+    }
+  }
+
   _renderDial(label, curSuffix, tgtSuffix, max, showButtons = false) {
     const cur = this._getVal(curSuffix);
-    const tgt = this._getVal(tgtSuffix);
+    // Use live drag value if dragging, otherwise use HA state
+    const isDragging = showButtons && this._dragTgt !== null;
+    const tgt = isDragging ? this._dragTgt : this._getVal(tgtSuffix);
     const unit = this._getUnit(curSuffix);
     const decimals = label === "PRESSURE" ? 2 : 1;
     const brand = this.config.color || "#ff9800";
@@ -137,7 +215,7 @@ class GaggiMateCard extends LitElement {
     const tgtPct = Math.min(Math.max(tgt, 0), max) / max;
 
     // Heating: current is more than 0.5 below target (only for temp dial)
-    const isHeating = showButtons && cur < tgt - 0.5;
+    const isHeating = showButtons && !isDragging && cur < tgt - 0.5;
 
     const slug = this.config.device_name;
     const mode = this.hass.states[`select.${slug}_mode`]?.state || "Standby";
@@ -159,15 +237,25 @@ class GaggiMateCard extends LitElement {
     const zone1Color = (isHeating || tgtPct > 0) ? brand : "transparent";
     const zone2Color = isHeating ? brandMid : "transparent";
     const dotColor = isHeating ? brand : "#aaa";
-    const handleStroke = isHeating ? brandMid : "#aaa";
+    const handleStroke = isDragging ? brand : (isHeating ? brandMid : "#aaa");
+    const handleFill = isDragging ? brand : "white";
+    const handleR = isDragging ? 5 : 3;
 
     const FULL_ARC = "M 22 78 A 40 40 0 1 1 78 78";
+
+    // Find the SVG from the event target itself (avoids stale shadowRoot queries)
+    const onHandleDown = showButtons
+      ? (ev) => {
+          const svgEl = ev.currentTarget.closest("svg");
+          this._onHandlePointerDown(ev, svgEl, max);
+        }
+      : null;
 
     return html`
       <div class="dial">
         <div class="d-label">${label}</div>
         <div class="d-rel">
-          <svg viewBox="0 0 100 100" style="overflow:visible">
+          <svg viewBox="0 0 100 100" style="overflow:visible; ${showButtons ? 'touch-action:none;' : ''}">
             <!-- Grey background track -->
             <path fill="none" stroke="#ccc" stroke-width="8" stroke-linecap="round" d="${FULL_ARC}" />
             <!-- Zone 1: achieved (full brand) -->
@@ -180,8 +268,12 @@ class GaggiMateCard extends LitElement {
               d="${FULL_ARC}"
               stroke-dasharray="${zone2.dashArray}"
               stroke-dashoffset="${zone2.dashOffset}" />
-            <!-- Target handle: open circle on track -->
-            <circle fill="white" stroke="${handleStroke}" stroke-width="1.5" cx="${handleX}" cy="${handleY}" r="3" />
+            <!-- Target handle: draggable circle on track -->
+            <circle
+              fill="${handleFill}" stroke="${handleStroke}" stroke-width="1.5"
+              cx="${handleX}" cy="${handleY}" r="${handleR}"
+              style="${showButtons ? 'cursor:grab; touch-action:none;' : ''}"
+              @pointerdown="${showButtons ? onHandleDown : null}" />
             <!-- Current dot: small filled circle on track -->
             <circle fill="${dotColor}" cx="${dotX}" cy="${dotY}" r="2.5" />
           </svg>
@@ -193,7 +285,7 @@ class GaggiMateCard extends LitElement {
                   @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'lower_temperature', {device_id: slug})}"
                   ?disabled="${!buttonsEnabled}">−</button>
               ` : ''}
-              <div class="v-tgt">${tgt.toFixed(decimals)}<span class="v-unit">${unit}</span></div>
+              <div class="v-tgt ${isDragging ? 'dragging' : ''}">${tgt.toFixed(decimals)}<span class="v-unit">${unit}</span></div>
               ${showButtons ? html`
                 <button class="temp-btn ${!buttonsEnabled ? 'disabled' : ''}"
                   @click="${() => buttonsEnabled && this.hass.callService('gaggimate', 'raise_temperature', {device_id: slug})}"
@@ -227,7 +319,12 @@ class GaggiMateCard extends LitElement {
         ${profile ? html`
           <div class="pad">
             <ha-select label="Profile" .value="${profile.state}"
-              @selected="${(e) => this.hass.callService('select', 'select_option', {entity_id: profile.entity_id, option: e.target.value})}">
+              @selected="${(e) => {
+                // Only act on user-initiated changes, not initial render
+                if (e.target.value && e.target.value !== profile.state) {
+                  this.hass.callService('select', 'select_option', {entity_id: profile.entity_id, option: e.target.value});
+                }
+              }}">
               ${profile.attributes.options.map(opt => html`<mwc-list-item .value="${opt}">${opt}</mwc-list-item>`)}
             </ha-select>
           </div>` : ''}
@@ -270,6 +367,7 @@ class GaggiMateCard extends LitElement {
       /* Target temp row: flex row with buttons flanking the value */
       .v-tgt-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
       .v-tgt { font-size: 22px; font-weight: bold; color: var(--primary-text-color); line-height: 1.1; }
+      .v-tgt.dragging { color: var(--accent-color, #ff9800); }
       .v-unit { font-size: 12px; font-weight: normal; opacity: 0.7; }
       .v-sep { height: 1px; background: var(--divider-color); margin: 4px 20%; }
       .v-cur-row { display: flex; align-items: center; justify-content: center; gap: 4px; }

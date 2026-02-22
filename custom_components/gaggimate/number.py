@@ -78,7 +78,7 @@ class GaggiMateTargetTemperatureNumber(GaggiMateNumberBase):
     @property
     def native_value(self) -> float | None:
         """Return the current target temperature."""
-        return self.coordinator.data.get("targetTemperature")
+        return self.coordinator.data.get("tt")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the target temperature."""
@@ -104,7 +104,7 @@ class GaggiMateTargetPressureNumber(GaggiMateNumberBase):
     @property
     def native_value(self) -> float | None:
         """Return the current target pressure."""
-        return self.coordinator.data.get("targetPressure")
+        return self.coordinator.data.get("pt")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the target pressure."""
@@ -130,7 +130,7 @@ class GaggiMateTargetWeightNumber(GaggiMateNumberBase):
     @property
     def native_value(self) -> float | None:
         """Return the current target weight."""
-        return self.coordinator.data.get("targetWeight")
+        return self.coordinator.data.get("tw")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the target weight."""

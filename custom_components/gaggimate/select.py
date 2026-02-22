@@ -120,6 +120,11 @@ class GaggiMateProfileSelect(GaggiMateSelectBase):
 
     async def async_select_option(self, option: str) -> None:
         """Select a profile."""
+        # Skip if already the current profile to avoid resetting device settings
+        if option == self.current_option:
+            _LOGGER.debug("Profile '%s' is already selected, skipping re-select", option)
+            return
+
         # Find profile by label
         profile = None
         for p in self.coordinator.profiles:

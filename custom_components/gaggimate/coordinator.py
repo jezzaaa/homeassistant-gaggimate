@@ -227,18 +227,33 @@ class GaggiMateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return False
 
     async def set_target_temperature(self, temperature: float) -> None:
-        """Set target temperature via HTTP API."""
-        try:
-            url = f"http://{self.host}{API_SETTINGS_PATH}"
-            data = {"targetTemperature": temperature}
-            async with self._session.post(url, json=data, timeout=10) as response:
-                if response.status == 200:
-                    _LOGGER.debug("Set target temperature to %.1f°C", temperature)
-                else:
-                    _LOGGER.error("Failed to set target temperature: HTTP %s", response.status)
-        except Exception as err:
-            _LOGGER.error("Error setting target temperature: %s", err)
-            raise
+        """Set target temperature by sending raise/lower commands via WebSocket.
+
+        The firmware only supports ±1°C increments via req:raise-temp / req:lower-temp.
+        We loop from the current integer temperature to the desired target.
+        """
+        current = self.data.get("tt") if self.data else None
+        if current is None:
+            _LOGGER.error("Cannot set target temperature: current value unknown")
+            return
+
+        current_int = round(current)
+        target_int = round(temperature)
+        steps = target_int - current_int
+
+        if steps == 0:
+            _LOGGER.debug("Target temperature already at %.1f°C, no change needed", temperature)
+            return
+
+        command = "req:raise-temp" if steps > 0 else "req:lower-temp"
+        _LOGGER.debug(
+            "Setting target temperature from %d°C to %d°C (%d steps of %s)",
+            current_int, target_int, abs(steps), command,
+        )
+
+        for _ in range(abs(steps)):
+            await self.send_command({"tp": command})
+            await asyncio.sleep(0.05)  # Small delay to avoid flooding the device
 
     async def set_target_pressure(self, pressure: float) -> None:
         """Set target pressure via HTTP API."""
