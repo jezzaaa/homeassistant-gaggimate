@@ -12,7 +12,13 @@ const getGaggiMateDevices = (hass) => {
     .filter(id => id.startsWith("select.") && id.includes("gaggimate") && id.endsWith("_mode"))
     .map(id => ({
       slug: id.split(".")[1].replace("_mode", ""),
-      name: hass.states[id].attributes.friendly_name?.replace(/\s*mode$/i, "") || id
+      name: (() => {
+        const n = hass.states[id].attributes.friendly_name || id;
+        const lower = n.toLowerCase();
+        if (lower.endsWith(" mode")) return n.slice(0, -5).trimEnd();
+        if (lower.endsWith("mode"))  return n.slice(0, -4).trimEnd();
+        return n;
+      })()
     }));
 };
 
